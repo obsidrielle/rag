@@ -35,15 +35,8 @@ impl ContextManager {
         });
     }
 
-    pub fn as_rq_body<'a>(&mut self, model: impl Into<&'a str>) -> serde_json::Value {
-        json!({
-            "messages": self.contexts,
-            "model": model.into(),
-            "stream": true,
-            "stream_options": {
-                "include_usage": true,
-            }
-        })
+    pub fn as_messages<'a>(&mut self) -> serde_json::Value {
+        serde_json::to_value(&self.contexts).unwrap()
     }
 }
 

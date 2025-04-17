@@ -2,14 +2,11 @@ use clap::Parser;
 use crate::config::Config;
 use crate::manager::ContextManager;
 use crate::processor::Processor;
+use crate::tools::ToolRegistry;
 
-#[derive(Parser, Default, Debug)]
+#[derive(Parser)]
 #[command(author = "obsidrielle", version = "1.0.0", about = "rust LLM ag(ent) for everything.", long_about = None)]
 pub struct App {
-    #[clap(skip)]
-    pub processor: Processor,
-    #[clap(skip)]
-    pub context: Context,
     /// Set api key and exit
     #[arg(long = "sa")]
     set_api_key: Option<String>,
@@ -22,37 +19,37 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(processor: Processor, context: Context) -> Self {
+    pub fn new() -> Self {
         Self {
-            processor,
-            context,
-            ..App::default()
+            set_api_key: None,
+            set_base_url: None,
+            set_model: None,
         }
     }
 
-    pub fn run(&mut self) {
+    pub async fn run(&mut self, mut context: Context, mut processor: Processor) -> anyhow::Result<()> {
         if let Some(ref e) = self.set_model {
-            self.context.config.model = e.to_string();
+            context.config.model = e.to_string();
         }
         if let Some(ref e) = self.set_base_url {
-            self.context.config.base_url = e.to_string();
+            context.config.base_url = e.to_string();
         }
         if let Some(ref e) = self.set_api_key {
-            self.context.config.api_key = e.to_string();
+            context.config.api_key = e.to_string();
         }
         if self.set_api_key.is_some() || self.set_base_url.is_some() || self.set_model.is_some() {
-            self.context.config.save_config();
+            context.config.save_config();
             std::process::exit(0);
         }
 
-
+        processor.run(&mut context).await
     }
 }
 
-#[derive(Default, Debug)]
 pub(crate) struct Context {
     pub config: Config,
     pub manager: ContextManager,
+    pub tools: ToolRegistry,
 }
 
 impl Context {
@@ -60,6 +57,7 @@ impl Context {
         Self {
             config,
             manager: context_manager,
+            tools: ToolRegistry::new(),
         }
     }
 }

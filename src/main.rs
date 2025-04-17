@@ -14,6 +14,7 @@ mod manager;
 mod processor;
 mod app;
 mod tools;
+mod rq;
 
 #[tokio::main]
 async fn main() {
@@ -23,8 +24,5 @@ async fn main() {
     let processor = Processor::new(true);
 
     let mut app: App = app::App::parse();
-    app.context = context;
-    app.processor = processor;
-
-    app.processor.run(&mut app.context).await.expect("Internal Error: ");
+    app.run(context, processor).await.expect("Internal Error: "); 
 }

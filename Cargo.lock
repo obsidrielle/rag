@@ -950,10 +950,10 @@ checksum = "13dc2df351e3202783a1fe0d44375f7295ffb4049267b0f3018346dc122a1d94"
 name = "macros"
 version = "0.1.0"
 dependencies = [
- "darling",
  "proc-macro2",
  "quote",
  "regex",
+ "serde",
  "syn",
 ]
 
@@ -1209,6 +1209,7 @@ dependencies = [
  "async-openai",
  "clap",
  "colored",
+ "derive_builder",
  "dirs",
  "encoding_rs",
  "futures",

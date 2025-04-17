@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
+use macros::function_tool;
 
 pub trait Tool {
-    fn metadata(&self) -> ToolMetaData {
-       
-    }
 
-    fn execute(&self, parameters: Value) -> anyhow::Result<()>;
+    fn metadata(&self) -> ToolMetaData;
+
+    fn execute(&self, parameters: Value) -> anyhow::Result<Value>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -16,6 +16,23 @@ pub struct ToolMetaData {
     pub name: String,
     pub description: String,
     pub parameters: Value,
+}
+
+impl ToolMetaData {
+    fn to_tools_call_body(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": self.parameters["properties"],
+                    "required": self.parameters["required"],
+                }
+            }
+        })
+    }
 }
 
 pub trait ToolParameters: for<'de> Deserialize<'de> {
@@ -40,9 +57,14 @@ pub struct ToolRegistry {
 
 impl ToolRegistry {
     pub fn new() -> Self {
-        Self {
+        let mut tools = Self {
             tools: HashMap::new(),
-        }
+        };
+
+        tools.register(AddTool {});
+        tools.register(ExecuteCommandTool {});
+
+        tools
     }
 
     pub fn register<T: Tool + 'static>(&mut self, tool: T) {
@@ -54,13 +76,13 @@ impl ToolRegistry {
         &self,
         tool_name: &str,
         parameters: Value,
-    ) -> anyhow::Result<()> {
-        self.tools
+    ) -> anyhow::Result<Value> {
+        let res = self.tools
             .get(tool_name)
             .expect("Unknown Tool")
             .execute(parameters)?;
 
-        Ok(())
+        Ok(res)
     }
 
     pub fn list_metadata(&self) -> Vec<ToolMetaData> {
@@ -68,6 +90,15 @@ impl ToolRegistry {
             .values()
             .map(|t| t.metadata())
             .collect()
+    }
+
+    pub fn to_tools_call_body(&self) -> Value {
+        serde_json::to_value(
+            self.tools
+                .iter()
+                .map(|(_, item)| item.metadata().to_tools_call_body())
+                .collect::<Vec<_>>()
+        ).unwrap()
     }
 }
 
@@ -89,9 +120,31 @@ impl Tool for StubTool {
         }
     }
 
-    fn execute(&self, parameters: Value) -> anyhow::Result<()> {
+    fn execute(&self, parameters: Value) -> anyhow::Result<Value> {
         let params = serde_json::from_value::<StubToolParameters>(parameters)?;
         println!("Execute StubTool {}", params.message);
-        Ok(())
+
+        Ok(Value::Null)
+    }
+}
+
+#[function_tool(name = "Add", description = "add a with b")]
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+#[function_tool(name = "ExecuteCommand", description = "Execute any command you pass by")]
+fn execute_command(command: String) {
+    
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_schema() {
+        let tool = AddTool {};
+        println!("{:?}", tool.metadata());
     }
 }

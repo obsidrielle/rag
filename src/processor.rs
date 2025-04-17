@@ -19,6 +19,7 @@ use serde_json::{json, Value};
 use crate::app::Context;
 use crate::manager::Role;
 use rustyline::{DefaultEditor, Editor};
+use crate::rq::{RqBodyBuilder, RsChunkBody};
 
 #[derive(Debug, Default)]
 pub(crate) struct Processor {
@@ -65,6 +66,10 @@ impl Processor {
 
     pub async fn run(&mut self, context: &mut Context) -> anyhow::Result<()> {
         let mut rl = DefaultEditor::new()?;
+        let mut base_body = RqBodyBuilder::default();
+        base_body.tools(context.tools.to_tools_call_body());
+        base_body.model(context.config.model.clone());
+
         loop {
             for e in &self.pre_input_hooks { e.pre_input(context)? }
 
@@ -78,14 +83,18 @@ impl Processor {
                 .with_api_key(&context.config.api_key);
             
             let client = Client::with_config(rq_config);
+            let rq_body = base_body.messages(context.manager.as_messages()).build()?;
+
             let mut stream: Pin<Box<dyn Stream<Item = Result<Value, OpenAIError>>>> = client.chat()
-                .create_stream_byot(context.manager.as_rq_body(context.config.model.as_str()))
+                .create_stream_byot(rq_body.to_rq_body())
                 .await?;
 
             let mut answer = String::new();
 
             while let Some(result) = stream.next().await {
                 if let Ok(chunk) = result {
+                    let Chunk = serde_json::from_value::<RsChunkBody>(chunk.clone())?;
+                    
                     if let Some(content) = chunk["choices"][0]["delta"]["content"].as_str() {
                         answer.push_str(content);
                     }

@@ -22,6 +22,8 @@ rustyline = "15.0.0"
 shell-words = "1.1.0"
 encoding_rs = "0.8"
 schemars = "1.0.0-alpha.17"
+derive_builder = "0.20.2"
+
 macros = { path = "macros" }
 
 [target.x86_64-pc-windows-gnu]
