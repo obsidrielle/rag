@@ -1,0 +1,31 @@
+[package]
+name = "rag"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+serde_yaml = "0.9.33"
+colored = "2.2.0"
+dirs = "5.0.1"
+thiserror = "1.0.69"
+tokio = { version = "1.44.1", features = ["full"] }
+lazy_static = "1.5.0"
+async-openai = { version = "0.28.0", features = ["default", "byot"] }
+anyhow = "1.0.97"
+clap = { version = "4.5.32", features = ["derive"] }
+regex = "1.11.1"
+serde_json = "1.0.140"
+futures = { version = "0.3.31", features = ["default"] }
+futures-core = "0.3.31"
+rustyline = "15.0.0"
+shell-words = "1.1.0"
+encoding_rs = "0.8"
+schemars = "1.0.0-alpha.17"
+macros = { path = "macros" }
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[workspace]
+members = ["macros"]
