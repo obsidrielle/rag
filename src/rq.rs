@@ -1,16 +1,18 @@
+use async_openai::types::{ChatCompletionMessageToolCallChunk, ChatCompletionRequestMessage, FinishReason, FunctionCall};
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 #[derive(Debug, Clone, Builder, Serialize)]
 pub struct RqBody {
     pub model: String,
-    pub messages: Value,
+    pub messages: Vec<ChatCompletionRequestMessage>,
     #[builder(default = "true")]
     pub stream: bool,
     #[builder(default)]
     pub stream_options: StreamOptions,
-    pub tools: Value,
+    #[builder(default = None)]
+    pub tools: Option<Value>,
     #[builder(default = "auto".to_string())]
     pub tool_choice: String,
 }
@@ -24,7 +26,7 @@ struct StreamOptions {
 impl Default for StreamOptions {
     fn default() -> Self {
         Self {
-            include_usage: false,
+            include_usage: true,
         }
     }
 }
@@ -47,29 +49,31 @@ pub struct RsChunkBody {
 }
 
 #[derive(Debug, Deserialize)]
-struct Choice {
+pub struct Choice {
     pub delta: Delta,
+    pub finish_reason: Option<FinishReason>,
     pub index: u64,
 }
 
 #[derive(Debug, Deserialize)]
-struct Delta {
+pub struct Delta {
     pub content: String,
     pub reasoning_content: Option<String>,
     pub role: String,
+    pub tool_calls: Option<Vec<ChatCompletionMessageToolCallChunk>>,
 }
 
 #[derive(Debug, Deserialize)]
-struct Usage {
+pub struct Usage {
     pub completion_tokens: u64,
     pub prompt_tokens: u64,
-    pub prompt_cache_hit_tokens: u64,
-    pub prompt_cache_miss_tokens: u64,
+    pub prompt_cache_hit_tokens: Option<u64>,
+    pub prompt_cache_miss_tokens: Option<u64>,
     pub total_tokens: u64,
     pub completion_tokens_details: Option<CompletionTokensDetails>
 }
 
 #[derive(Debug, Deserialize)]
-struct CompletionTokensDetails {
+pub struct CompletionTokensDetails {
     pub reasoning_tokens: u64,
 }

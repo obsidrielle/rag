@@ -1,9 +1,7 @@
-use std::cell::RefCell;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use colored::Colorize;
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -45,7 +43,7 @@ impl Config {
             }
         };
 
-        config_dir.push("rag.json");
+        config_dir.push("rag.yaml");
         self.config_file_path = config_dir;
     }
 
@@ -87,6 +85,7 @@ impl Config {
 
             file.read_to_string(&mut config_string).expect("Failed to read from config file");
             *self = serde_yaml::from_str(config_string.as_str()).expect("Failed to deserialize config");
+            self.get_default_config_file();
         }
     }
 }

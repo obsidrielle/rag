@@ -1,7 +1,10 @@
+use async_openai::Client;
+use async_openai::config::OpenAIConfig;
 use clap::Parser;
 use crate::config::Config;
 use crate::manager::ContextManager;
 use crate::processor::Processor;
+use crate::rq::{RqBody, RqBodyBuilder};
 use crate::tools::ToolRegistry;
 
 #[derive(Parser)]
@@ -49,14 +52,24 @@ impl App {
 pub(crate) struct Context {
     pub config: Config,
     pub manager: ContextManager,
+    pub client: Client<OpenAIConfig>,
+    pub rq_body: RqBodyBuilder,
     pub tools: ToolRegistry,
 }
 
 impl Context {
-    pub fn new(config: Config, context_manager: ContextManager) -> Self {
+    pub fn new(config: Config, context_manager: ContextManager, client: Client<OpenAIConfig>) -> Self {
+        let tools = ToolRegistry::new();
+        
+        let mut base_body = RqBodyBuilder::default();
+        base_body.tools(Some(tools.to_tools_call_body()));
+        base_body.model(config.model.clone());
+        
         Self {
             config,
             manager: context_manager,
+            client,
+            rq_body: base_body,
             tools: ToolRegistry::new(),
         }
     }

@@ -62,7 +62,7 @@ impl ToolRegistry {
         };
 
         tools.register(AddTool {});
-        tools.register(ExecuteCommandTool {});
+        // tools.register(ExecuteCommandTool {});
 
         tools
     }
@@ -74,11 +74,11 @@ impl ToolRegistry {
 
     pub fn execute(
         &self,
-        tool_name: &str,
+        tool_name: impl AsRef<str>,
         parameters: Value,
     ) -> anyhow::Result<Value> {
         let res = self.tools
-            .get(tool_name)
+            .get(tool_name.as_ref())
             .expect("Unknown Tool")
             .execute(parameters)?;
 
@@ -133,9 +133,9 @@ fn add(a: i32, b: i32) -> i32 {
     a + b
 }
 
-#[function_tool(name = "ExecuteCommand", description = "Execute any command you pass by")]
-fn execute_command(command: String) {
-    
+#[function_tool(name = "ExecuteCommand", description = "Execute any command you pass by (no check). Return `Ok` if executing successfully, otherwise, return reason.")]
+fn execute_command(command: String) -> String {
+    todo!() 
 }
 
 #[cfg(test)]
@@ -145,6 +145,11 @@ mod tests {
     #[test]
     fn test_schema() {
         let tool = AddTool {};
-        println!("{:?}", tool.metadata());
+        let answer = tool.execute(json!({
+            "a": 3,
+            "b": 5,
+        })).unwrap();
+        
+        println!("{}", serde_json::to_string_pretty(&answer).unwrap());
     }
 }
